@@ -48,16 +48,15 @@ services:
       timeout: 5s
       retries: 120
 
-  elasticsearch:
+  es01:
     depends_on:
       setup:
         condition: service_healthy
     image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
-    container_name: es01
     volumes:
       - certs:/usr/share/elasticsearch/config/certs
       - esdata01:/usr/share/elasticsearch/data
-      - ./server/elasticsearch/config/elasticsearch-plugins.yml:/usr/share/elasticsearch/config/elasticsearch-plugins.yml
+#      - ./server/elasticsearch/config/elasticsearch-plugins.yml:/usr/share/elasticsearch/config/elasticsearch-plugins.yml # 次回の起動時にヌルポが発生する、要調査
     ports:
       - ${ES_PORT}:9200
     environment:
@@ -95,7 +94,7 @@ services:
 
   kibana:
     depends_on:
-      elasticsearch:
+      es01:
         condition: service_healthy
     image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
     volumes:
@@ -121,6 +120,21 @@ services:
       timeout: 10s
       retries: 120
 
+  filebeat:
+    depends_on:
+      es01:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    image: docker.elastic.co/beats/filebeat:8.9.0
+    user: root
+    volumes:
+      - ./server/filebeat/filebeat.docker.yml:/usr/share/filebeat/filebeat.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - TZ=Asia/Tokyo
+
   web:
     image: nginx:1.25.2
     ports:
@@ -128,7 +142,6 @@ services:
     volumes:
       - "./server/nginx/nginx.conf:/etc/nginx/nginx.conf"
       - "./server/nginx/conf.d:/etc/nginx/conf.d"
-      - "./server/nginx/log:/var/log/nginx"
       - "./html:/usr/share/nginx/html"
     environment:
       - TZ=Asia/Tokyo
@@ -137,10 +150,6 @@ volumes:
   certs:
     driver: local
   esdata01:
-    driver: local
-  esdata02:
-    driver: local
-  esdata03:
     driver: local
   kibanadata:
     driver: local

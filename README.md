@@ -1,1 +1,1 @@
-# Elasticsearch & Kibana 学習
+# Elastic Stack の学習
