@@ -134,6 +134,24 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - TZ=Asia/Tokyo
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - KIBANA_PASSWORD=${KIBANA_PASSWORD}
+
+  logstash:
+    depends_on:
+      es01:
+        condition: service_healthy
+      kibana:
+        condition: service_healthy
+    image: docker.elastic.co/logstash/logstash:${STACK_VERSION}
+    user: root
+    volumes:
+      - certs:/usr/share/logstash/config/certs
+      - ./server/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ./server/logstash/pipeline:/usr/share/logstash/pipeline
+    environment:
+      - TZ=Asia/Tokyo
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
 
   web:
     image: nginx:1.25.2
